@@ -9,14 +9,13 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = True
 app.config['SECRET_KEY'] = "SECRET"
 
-connect_db(app)
-db.create_all()
+connect_db(app) 
 
 def serialize(cupcake):
     """ Serialize cupcake obj to dict. """
     return {
         "id": cupcake.id,
-        "flavor": cupcake.id,
+        "flavor": cupcake.flavor,
         "size": cupcake.size,
         "rating": cupcake.rating,
         "image": cupcake.image
@@ -26,7 +25,7 @@ def serialize(cupcake):
 def list_cupcakes():
     """ list all cupcakes """
     cupcakes = Cupcake.query.all()
-    serialized = [serialize(c) for c in cupcakes]
+    serialized = [serialize(cupcake) for cupcake in cupcakes]
 
     return jsonify(cupcakes=serialized)
 
@@ -41,15 +40,44 @@ def show_cupcake(id):
 @app.route("/api/cupcakes", methods=["POST"])
 def add_cupcake():
     """ add new cupcake """
-    flavor = request.json["flavor"]
-    size = request.json["size"]
-    rating = request.json["rating"]
 
-    new_cupcake = Cupcake(flavor=flavor, size=size, rating=rating)
+    data = request.json
 
-    db.session.add(new_cupcake)
+    cupcake = Cupcake(
+            flavor=data['flavor'],
+            rating=data['rating'],
+            size=data['size'],
+            image=data['image'] or None)
+
+    db.session.add(cupcake)
     db.session.commit()
 
-    serialized = serialize(new_cupcake)
+    serialized = serialize(cupcake)
 
     return (jsonify(cupcake=serialized), 201)
+
+@app.route("/api/cupcakes/<int:id>", methods=["PATCH"])
+def update_cupcake(id):
+    """ update cupcake with id """ 
+    cupcake = Cupcake.query.get_or_404(id)
+
+    cupcake.flavor = request.json.get("flavor", cupcake.flavor)
+    cupcake.rating = request.json.get("rating", cupcake.rating)
+    cupcake.size = request.json.get("size", cupcake.size)
+    cupcake.image = request.json.get("image", cupcake.image)
+
+    db.session.commit()
+
+    serialized = serialize(cupcake)
+
+    return jsonify(cupcake=serialized)
+
+
+@app.route("/api/cupcakes/<int:id>", methods=["DELETE"])
+def delete_cupcake(id):
+    """ delete cupcake with id """ 
+    cupcake = Cupcake.query.get_or_404(id)
+    db.session.delete(cupcake)
+    db.session.commit()
+
+    return jsonify(message= "deleted")
