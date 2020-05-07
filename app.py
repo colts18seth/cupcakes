@@ -21,6 +21,11 @@ def serialize(cupcake):
         "image": cupcake.image
     }
 
+@app.route("/")
+def home():
+    """ static page with list for cupcakes and form to add new """
+    return render_template("home.html")
+
 @app.route("/api/cupcakes")
 def list_cupcakes():
     """ list all cupcakes """
@@ -81,3 +86,4 @@ def delete_cupcake(id):
     db.session.commit()
 
     return jsonify(message= "deleted")
+
